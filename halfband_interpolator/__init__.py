@@ -23,9 +23,9 @@ class halfband_interpolator(verilog,thesdk):
         self.halfband_Bandwidth=0.45 # Pass band bandwidth
         self.halfband_N=40           #Number of coeffs
         self.scale=2
-        self.iptr_A = refptr();
+        self.iptr_A = IO();
         self.model='py';             #can be set externally, but is not propagated
-        self._Z = refptr();
+        self._Z = IO();
         if len(arg)>=1:
             parent=arg[0]
             self.copy_propval(parent,self.proplist)
@@ -39,12 +39,12 @@ class halfband_interpolator(verilog,thesdk):
         self._vlogparameters=dict([ ('g_Rs_high',self.Rs_high), ('g_scale',self.scale) ])
 
     def main(self):
-        interpolated=np.zeros((2*self.iptr_A.Value.reshape(-1,1).shape[0],1),dtype=complex)
-        interpolated[0::2,0]=self.iptr_A.Value.reshape(-1,1)[:,0]
+        interpolated=np.zeros((2*self.iptr_A.Data.reshape(-1,1).shape[0],1),dtype=complex)
+        interpolated[0::2,0]=self.iptr_A.Data.reshape(-1,1)[:,0]
         out=np.convolve(interpolated[:,0],self.H[:,0],mode='full').reshape((-1,1))
         if self.par:
             queue.put(out)
-        self._Z.Value=out
+        self._Z.Data=out
 
     def run(self,*arg):
         if len(arg)>0:
@@ -63,7 +63,7 @@ class halfband_interpolator(verilog,thesdk):
     def firhalfband(self,**kwargs):
        n=kwargs.get('n',32)
        if np.remainder(n,2) > 0:
-           self.print_log({'type':'F', 'msg':'Number of coefficients must be even'})
+           self.print_log(type='F', msg='Number of coefficients must be even')
        bandwidth=kwargs.get('bandwidth',0.45) # Fs=1
        desired=np.array([ 1, 0] )
        bands=np.array([0, bandwidth, 0.499,0.5])
@@ -87,7 +87,7 @@ class halfband_interpolator(verilog,thesdk):
         except:
           pass
         fid=open(self._infile,'wb')
-        np.savetxt(fid,self.iptr_A.Value.reshape(-1,1).view(float),fmt='%i', delimiter='\t')
+        np.savetxt(fid,self.iptr_A.Data.reshape(-1,1).view(float),fmt='%i', delimiter='\t')
         fid.close()
 
     def read_outfile(self):
@@ -98,7 +98,7 @@ class halfband_interpolator(verilog,thesdk):
         fid.close()
         if self.par:
           queue.put(out)
-        self._Z.Value=out
+        self._Z.Data=out
         os.remove(self._outfile)
 
     def export_scala(self):
